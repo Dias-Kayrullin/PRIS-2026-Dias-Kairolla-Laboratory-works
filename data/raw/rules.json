@@ -1,0 +1,19 @@
+{
+  "scenario_name": "Анализ личных расходов и контроль бюджета",
+
+  "thresholds": {
+    "min_total_amount": 100.0,
+    "max_total_amount_daily": 15000.0,
+    "max_alcohol_percentage": 0.3
+  },
+
+  "lists": {
+    "allowed_categories": ["Продукты питания", "Транспорт", "Коммунальные услуги", "Здоровье"],
+    "prohibited_tags": ["алкоголь", "табак", "азартные игры"]
+  },
+
+  "critical_rules": {
+    "block_alcohol": true,
+    "require_total_amount": true
+  }
+}
