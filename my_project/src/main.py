@@ -1,63 +1,88 @@
 import streamlit as st
-from mock_data import test_receipt as default_receipt
-from logic import check_receipt_rules
+import networkx as nx
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Анализ чеков — Rule-Based система", layout="wide")
+from models import Store, Category, Item
+from knowledge_graph import create_expense_graph, find_related
 
-st.title("Rule-Based Система анализа чеков 🧾")
+# Настройки страницы
+st.set_page_config(
+    page_title="Граф знаний расходов",
+    layout="wide",
+    page_icon="🧾"
+)
 
-st.write("Изменяйте параметры тестового чека и проверяйте, проходит ли он правила.")
+st.title("Граф знаний расходов 🧾🕸")
+st.write("Исследуйте связи между магазинами, категориями и товарами")
 
-# Сайдбар для ввода данных
-with st.sidebar:
-    st.header("Параметры чека")
-    
-    total_amount = st.number_input(
-        "Общая сумма чека (₸)",
-        min_value=0.0,
-        value=float(default_receipt["total_amount"]),
-        step=100.0
-    )
-    
-    has_alcohol = st.checkbox(
-        "Содержит алкоголь?",
-        value=default_receipt["has_alcohol"]
-    )
-    
-    category = st.text_input(
-        "Категория чека",
-        value=default_receipt["category_text"]
-    )
-    
-    items_count = st.number_input(
-        "Количество позиций",
-        min_value=1,
-        value=default_receipt["items_count"],
-        step=1
-    )
+# Загружаем граф
+@st.cache_data
+def get_graph():
+    return create_expense_graph()
 
-# Кнопка запуска
-if st.button("Проверить чек по правилам", type="primary"):
-    # Собираем текущие данные
-    current_data = {
-        "category_text": category,
-        "total_amount": total_amount,
-        "items_count": items_count,
-        "has_alcohol": has_alcohol,
-        "tags": default_receipt["tags"]  # пока фиксированные, можно позже сделать редактируемыми
-    }
+G = get_graph()
+
+# Выбор узла
+all_nodes = sorted(list(G.nodes()))
+selected = st.selectbox(
+    "Выберите узел (магазин / категория / товар):",
+    all_nodes,
+    index=0
+)
+
+# Кнопка для показа связей
+if st.button("Показать связи", type="primary"):
+    related = find_related(G, selected)
     
-    # Получаем результат
-    result = check_receipt_rules(current_data)
-    
-    # Красиво выводим
-    if "✅" in result:
-        st.success(result)
-    elif "⛔️" in result:
-        st.error(result)
+    if related:
+        st.subheader(f"Связи для **{selected}**")
+        for neigh, ntype in related:
+            st.write(f"→ **{neigh}**  ({ntype})")
     else:
-        st.warning(result)
-    
-    # Показываем, какие данные были проверены
-    st.write("**Проверенные данные:**")
-    st.json(current_data)
+        st.info("Связей не найдено для этого узла")
+
+# Визуализация графа
+st.subheader("Визуализация графа")
+
+fig, ax = plt.subplots(figsize=(12, 9))
+
+# Цвета в зависимости от типа узла
+node_colors = []
+for node in G.nodes():
+    ntype = G.nodes[node].get("type", "unknown")
+    if ntype == "category":
+        node_colors.append("#a8e6cf")   # светло-зелёный
+    elif ntype == "store":
+        node_colors.append("#b3d4fc")   # светло-синий
+    elif ntype == "item":
+        node_colors.append("#fff3b0")   # светло-жёлтый
+    else:
+        node_colors.append("#e0e0e0")   # серый
+
+# Раскладка графа
+pos = nx.spring_layout(G, seed=42, k=0.6)
+
+# Рисуем
+nx.draw(
+    G,
+    pos,
+    with_labels=True,
+    node_color=node_colors,
+    node_size=2400,
+    font_size=9,
+    font_weight="bold",
+    edge_color="gray",
+    linewidths=1.5,
+    ax=ax
+)
+
+# Улучшаем отображение
+plt.title("Граф связей расходов", fontsize=14, pad=20)
+plt.tight_layout()
+
+st.pyplot(fig)
+
+# Дополнительная информация
+st.markdown("---")
+st.caption("Граф построен на основе примеров магазинов, категорий и товаров. "
+           "Цвета: зелёный — категории, синий — магазины, жёлтый — товары.")
