@@ -28,4 +28,6 @@
    ```bash
    pip install -r requirements.txt
 2. Запустите приложение:
+
+   ```bash
     streamlit run src/main.py
