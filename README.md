@@ -32,7 +32,7 @@
    ```bash
    pip install -r requirementss.txt
 
-Запустите приложение:
+2. Запустите приложение:
 
    ```bash
    streamlit run main.py
