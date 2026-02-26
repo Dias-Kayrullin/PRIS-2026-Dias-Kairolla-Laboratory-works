@@ -1,6 +1,6 @@
 import networkx as nx
 
-from models import Store, Category, Item
+from .models import Store, Category, Item
 
 
 def create_expense_graph():
